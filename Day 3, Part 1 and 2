@@ -1,1 +1,176 @@
+package day.pkg3;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+public class Day3 {
+
+    private static int VMAX, HMAX;
+    private static ArrayList<ArrayList<String>> matriz;
+    private static HashMap<String, ArrayList<Integer>> coordenadasEngrenagens;
+
+    public static void main(String[] args) throws IOException {
+        lerDoArquivo("input.txt");
+        problema1();
+        System.out.println("----------------------------");
+    }
+
+    // Método para ler o conteúdo do arquivo e armazenar na matriz
+    private static void lerDoArquivo(String caminhoArquivo) throws IOException {
+        File arquivo = new File(caminhoArquivo);
+        List<String> conteudoArquivo = Files.readAllLines(arquivo.toPath(), UTF_8);
+        matriz = new ArrayList<>(); 
+        for (String linha : conteudoArquivo) {
+            matriz.add(new ArrayList<String>(Arrays.asList(linha.split(""))));
+        }
+    }
+
+    // Método para resolver o primeiro problema
+    private static void problema1() {
+        coordenadasEngrenagens = new HashMap<>();
+        VMAX = matriz.size();
+        HMAX = matriz.get(0).size(); // Assumindo que todas as linhas têm o mesmo comprimento
+        int soma = 0;
+        int somaRelacaoEngrenagem = 0;
+        StringBuilder sb = new StringBuilder();
+        boolean numeroValido = false;
+        boolean numeroAdicionado = false;
+        
+        for (int r = 0; r < VMAX; r++) {
+            HashSet<String> coordenadasEncontradas = new HashSet<>();
+            for (int c = 0; c < HMAX; c++) {
+                numeroAdicionado = false;
+                String atual = matriz.get(r).get(c);
+                
+                // Verifica se a célula atual é um número
+                if (!isNumerico(atual) || c == HMAX - 1) {
+                    if (isNumerico(atual) && numeroValido) sb.append(atual);
+                    if (isNumerico(sb.toString()) && numeroValido) {
+                        int numeroFinal = Integer.parseInt(sb.toString());
+                        soma += numeroFinal;
+                        for (String coord : coordenadasEncontradas) {
+                            if (coordenadasEngrenagens.containsKey(coord)) {
+                                coordenadasEngrenagens.get(coord).add(numeroFinal);
+                            } else {
+                                coordenadasEngrenagens.put(coord, new ArrayList<>());
+                                coordenadasEngrenagens.get(coord).add(numeroFinal);
+                            }
+                        }
+                        coordenadasEncontradas = new HashSet<>();
+                    }
+                    sb = new StringBuilder();
+                    numeroValido = false;
+                    continue;
+                }
+                
+                // Verifica as adjacências: cima, esquerda, baixo, direita
+                // Cima
+                if (r != 0) {
+                    String cimaEsquerda = ".";
+                    String cimaMeio = ".";
+                    String cimaDireita = "."; 
+                    cimaMeio = matriz.get(r-1).get(c);
+                    if (c != 0) cimaEsquerda = matriz.get(r-1).get(c-1);
+                    if (c != HMAX-1) cimaDireita = matriz.get(r-1).get(c+1);
+                    if (isCaracterEspecial(cimaEsquerda) || isCaracterEspecial(cimaMeio) || isCaracterEspecial(cimaDireita) || numeroValido) {
+                        if (cimaEsquerda.equals("*")) coordenadasEncontradas.add((r-1) + " " + (c-1));
+                        if (cimaMeio.equals("*")) coordenadasEncontradas.add((r-1) + " " + (c));
+                        if (cimaDireita.equals("*")) coordenadasEncontradas.add((r-1) + " " + (c+1));
+                        if (!numeroAdicionado) {
+                            sb.append(atual);
+                            numeroAdicionado = true;
+                        }
+                        numeroValido = true;
+                    }
+                }
+
+                // Esquerda
+                if (c != 0) {
+                    String esquerda = matriz.get(r).get(c-1);
+                    if (isCaracterEspecial(esquerda)) {
+                        if (!numeroAdicionado) {
+                            sb.append(atual);
+                            numeroAdicionado = true;
+                        }
+                        numeroValido = true;
+                    }
+                    if (esquerda.equals("*")) coordenadasEncontradas.add((r) + " " + (c-1));
+                }
+
+                // Baixo
+                if (r != VMAX - 1) {
+                    String baixoEsquerda = ".";
+                    String baixoMeio = ".";
+                    String baixoDireita = "."; 
+                    baixoMeio = matriz.get(r+1).get(c);
+                    if (c != 0) baixoEsquerda = matriz.get(r+1).get(c-1);
+                    if (c != HMAX-1) baixoDireita = matriz.get(r+1).get(c+1);
+                    if (isCaracterEspecial(baixoEsquerda) || isCaracterEspecial(baixoMeio) || isCaracterEspecial(baixoDireita) || numeroValido) {
+                        if (baixoEsquerda.equals("*")) coordenadasEncontradas.add((r+1) + " " + (c-1));
+                        if (baixoMeio.equals("*")) coordenadasEncontradas.add((r+1) + " " + (c));
+                        if (baixoDireita.equals("*")) coordenadasEncontradas.add((r+1) + " " + (c+1));
+                        if (!numeroAdicionado) {
+                            sb.append(atual);
+                            numeroAdicionado = true;
+                        }
+                        numeroValido = true;
+                    }
+                }
+
+                // Direita
+                if (c != HMAX - 1) {
+                    String direita = matriz.get(r).get(c+1);
+                    if (isCaracterEspecial(direita)) {
+                        if (!numeroAdicionado) {
+                            sb.append(atual);
+                            numeroAdicionado = true;
+                        }
+                        numeroValido = true;
+                    } else if (isNumerico(direita)) {
+                        if (!numeroAdicionado) {
+                            sb.append(atual);
+                            numeroAdicionado = true;
+                        }
+                    } 
+                    if (direita.equals("*")) coordenadasEncontradas.add((r) + " " + (c+1));
+                }
+            }
+        }
+
+        // Calcula a soma das relações de transmissão das engrenagens
+        for (String chave : coordenadasEngrenagens.keySet()) {
+            int produto = 1;
+            if (coordenadasEngrenagens.get(chave).size() <= 1) continue;
+            for (Integer i : coordenadasEngrenagens.get(chave)) {
+                produto *= i;
+            }
+            somaRelacaoEngrenagem += produto;
+        }
+
+        System.out.println("Soma de todos os números das peças: " + soma);
+        System.out.println("Soma de todas as relações de transmissão: " + somaRelacaoEngrenagem);
+    }
+
+    // Verifica se o caractere é especial (não é ponto ou número)
+    private static boolean isCaracterEspecial(String s) {
+        return !".0123456789".contains(s);
+    }
+
+    // Verifica se a string é numérica
+    public static boolean isNumerico(String string) { 
+        if (string == null || string.equals("")) return false;
+        try {
+            Integer.parseInt(string);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+}
